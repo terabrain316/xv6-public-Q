@@ -89,6 +89,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  p->nice = 20;
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -531,4 +533,64 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+
+int getnice (int pid) {
+ struct proc *p;
+ int nice;
+
+ acquire(&ptable.lock);
+ for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
+    if(p->state != UNUSED && p->pid==pid) {
+        nice= p->nice;
+        release(&ptable.lock);
+        return nice;
+    }
+ }
+ release(&ptable.lock);
+ return -1;
+}
+
+int setnice(int pid, int value) {
+    struct proc *p;
+    if (value<0 || value >39) return -1;
+
+    acquire(&ptable.lock);
+    for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
+        if(p->state !=UNUSED && p->pid==pid) {
+            p->nice = value;
+            release(&ptable.lock);
+            return 0;
+        }
+    }
+    release(&ptable.lock);
+    return -1;
+}
+
+void ps (int pid) {
+    static char *states[] = {
+    [UNUSED]    "UNUSED  ",
+    [EMBRYO]    "EMBRYO  ",
+    [SLEEPING]  "SLEEPING",
+    [RUNNING]   "RUNNING ",
+    [RUNNABLE]  "RUNNABLE",
+    [ZOMBIE]    "ZOMBIE  "
+    };
+
+    struct proc *p;
+    int printed_header=0;
+
+    acquire(&ptable.lock);
+    for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
+        if(p->state==UNUSED) continue;
+        if(pid!=0 && p->pid!=pid) continue;
+        if(!printed_header){
+            cprintf("name\tpid\tstate\t\tpriority\n");
+            printed_header = 1;
+        }
+        cprintf("%s\t%d\t%s\t%d\n", p->name,p->pid,states[p->state], p->nice);
+    
+    }
+    release(&ptable.lock);
 }
