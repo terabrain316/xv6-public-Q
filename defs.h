@@ -125,6 +125,8 @@ int             getnice(int);
 int             setnice(int, int);
 void            ps(int);
 
+int             getweight(int);
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 
